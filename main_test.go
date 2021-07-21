@@ -5,34 +5,60 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"testing"
 )
 
-func TestGetInfoAndSelelectedHeaders(t *testing.T) {
-	var headers = []string{"test", "test2"}
+var selectedHeaders = []string{"Cache-Control", "Via", "X-Cache"}
 
-	info := getInfoAndSelelectedHeaders(nil, errors.New("error"), headers)
+func TestGetInfoAndSelelectedHeadersWithError(t *testing.T) {
 
-	if info == nil {
-		log.Fatal()
-	}
+	info := getInfoAndSelelectedHeaders(nil, errors.New("error"), selectedHeaders)
 
-	if info["error"] != "error" {
-		log.Fatal()
-	}
+	assertNotNil(info)
+	assertEqualFold(info["Error"], "error")
+}
+
+func TestGetInfoAndSelelectedHeaders200(t *testing.T) {
+
+	var httpHeaders = map[string][]string{}
+	httpHeaders["Cache-Control"] = []string{"value1", "value2"}
+	httpHeaders["Via"] = []string{"value1"}
+	httpHeaders["X-Cache"] = []string{"value1"}
+
+	var resp = createHttpResponse(200, httpHeaders)
+
+	info := getInfoAndSelelectedHeaders(&resp, nil, selectedHeaders)
+
+	assertNotNil(info)
+
+	assertEqualFold(info["StatusCode"], "200")
+	assertEqualFold(info["Cache-Control"], "value1,value2")
+	assertEqualFold(info["Via"], "value1")
+	assertEqualFold(info["X-Cache"], "value1")
 
 }
 
-func TestGetInfoAndSelelectedHeaders2(t *testing.T) {
-	var headers = []string{"test", "test2"}
+func TestGetInfoAndSelelectedHeaders404(t *testing.T) {
+
+	var resp = createHttpResponse(404, map[string][]string{})
+
+	info := getInfoAndSelelectedHeaders(&resp, nil, selectedHeaders)
+
+	assertNotNil(info)
+
+	assertEqualFold(info["StatusCode"], "404")
+}
+
+func createHttpResponse(statusCode int, headers map[string][]string) http.Response {
 
 	resp := http.Response{
 		Status:           "",
-		StatusCode:       0,
+		StatusCode:       statusCode,
 		Proto:            "",
 		ProtoMajor:       0,
 		ProtoMinor:       0,
-		Header:           map[string][]string{},
+		Header:           headers,
 		Body:             nil,
 		ContentLength:    0,
 		TransferEncoding: []string{},
@@ -43,14 +69,16 @@ func TestGetInfoAndSelelectedHeaders2(t *testing.T) {
 		TLS:              &tls.ConnectionState{},
 	}
 
-	info := getInfoAndSelelectedHeaders(&resp, nil, headers)
-
-	if info == nil {
-		log.Fatal()
+	return resp
+}
+func assertEqualFold(s1 string, s2 string) {
+	if !strings.EqualFold(s1, s2) {
+		log.Fatalf("%s != %s", s1, s2)
 	}
+}
 
-	if info["statusCode"] != "0" {
-		log.Fatal()
+func assertNotNil(o interface{}) {
+	if o == nil {
+		log.Fatalf("%s == nil", o)
 	}
-
 }

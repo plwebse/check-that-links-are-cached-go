@@ -19,24 +19,20 @@ func getUrlsFromBody(resp *http.Response, err error) []string {
 	defer resp.Body.Close()
 	urls := []string{}
 
-	if err != nil {
-		log.Print(err)
-		return urls
-	}
+	if err == nil {
+		doc, err := goquery.NewDocumentFromReader(resp.Body)
+		if err == nil {
+			doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
 
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		log.Print(err)
-		return urls
-	}
-
-	doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
-
-		url, _ := s.Attr("href")
-		if strings.HasPrefix(url, "http") {
-			urls = append(urls, url)
+				url, _ := s.Attr("href")
+				if strings.HasPrefix(url, "http") {
+					urls = append(urls, url)
+				}
+			})
 		}
-	})
+	} else {
+		log.Print(err)
+	}
 
 	return urls
 }
@@ -45,7 +41,7 @@ func getInfoAndSelelectedHeaders(resp *http.Response, err error, selectedHeaders
 	var res = make(map[string]string)
 
 	if err != nil {
-		res["error"] = err.Error()
+		res["Error"] = err.Error()
 	} else {
 		for key, val := range resp.Header {
 			for _, shn := range selectedHeaders {
@@ -55,7 +51,7 @@ func getInfoAndSelelectedHeaders(resp *http.Response, err error, selectedHeaders
 			}
 		}
 
-		res["statusCode"] = fmt.Sprint(resp.StatusCode)
+		res["StatusCode"] = fmt.Sprint(resp.StatusCode)
 	}
 
 	return res
