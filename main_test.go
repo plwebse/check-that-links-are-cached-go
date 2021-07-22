@@ -50,6 +50,12 @@ func TestGetInfoAndSelelectedHeaders404(t *testing.T) {
 	assertEqualFold(info["StatusCode"], "404")
 }
 
+func TestHasHttpPrefix(t *testing.T) {
+
+	assertTrue(hasHttpPrefix("https://plweb.se"))
+	assertTrue(!hasHttpPrefix("#menu"))
+}
+
 func createHttpResponse(statusCode int, headers map[string][]string) http.Response {
 
 	resp := http.Response{
@@ -71,6 +77,13 @@ func createHttpResponse(statusCode int, headers map[string][]string) http.Respon
 
 	return resp
 }
+
+func assertTrue(b1 bool) {
+	if b1 != true {
+		log.Fatalf("%v != true", b1)
+	}
+}
+
 func assertEqualFold(s1 string, s2 string) {
 	if !strings.EqualFold(s1, s2) {
 		log.Fatalf("%s != %s", s1, s2)

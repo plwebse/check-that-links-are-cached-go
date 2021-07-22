@@ -15,26 +15,36 @@ func getUrlResponse(u string) (*http.Response, error) {
 	return http.Get(u)
 }
 
-func getUrlsFromBody(resp *http.Response, err error) []string {
+func getUrlsFromBody(resp *http.Response, respErr error) []string {
+
+	if respErr != nil {
+		log.Fatalf("something went wrong when running: %s \n", respErr)
+	}
+
 	defer resp.Body.Close()
+	doc, parseErr := goquery.NewDocumentFromReader(resp.Body)
+
+	if parseErr != nil {
+		log.Fatalf("something went wrong while parsing: %s \n", parseErr)
+	}
+
 	urls := []string{}
-
-	if err == nil {
-		doc, err := goquery.NewDocumentFromReader(resp.Body)
-		if err == nil {
-			doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
-
-				url, _ := s.Attr("href")
-				if strings.HasPrefix(url, "http") {
-					urls = append(urls, url)
-				}
-			})
+	doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
+		url, _ := s.Attr("href")
+		if hasHttpPrefix(url) {
+			urls = append(urls, url)
 		}
-	} else {
-		log.Print(err)
+	})
+
+	if len(urls) == 0 {
+		log.Fatalf("Could not find any links: %s \n", resp.Request.URL)
 	}
 
 	return urls
+}
+
+func hasHttpPrefix(url string) bool {
+	return strings.HasPrefix(url, "http")
 }
 
 func getInfoAndSelelectedHeaders(resp *http.Response, err error, selectedHeaders []string) map[string]string {
